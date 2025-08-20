@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Ranking de Estagiários - Uniasselvi</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #FFD700;
+      color: #000;
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    main {
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+    section {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      cursor: pointer;
+      font-weight: bold;
+      background: #000;
+      color: #FFD700;
+    }
+    button:hover {
+      background: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #FFD700;
+      color: #000;
+    }
+    tr:nth-child(even) {
+      background: #f2f2f2;
+    }
+    .top1 { background: #FFD700 !important; font-weight: bold; }
+    .top2 { background: #C0C0C0 !important; font-weight: bold; }
+    .top3 { background: #CD7F32 !important; font-weight: bold; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>Ranking de Estagiários - Uniasselvi</header>
+  <main>
+    <!-- Cadastro de Estagiários -->
+    <section>
+      <h2>Cadastrar Estagiário</h2>
+      <input type="text" id="nomeEstagiario" placeholder="Nome do Estagiário">
+      <button onclick="cadastrarEstagiario()">Cadastrar</button>
+    </section>
+
+    <!-- Login Supervisor -->
+    <section>
+      <h2>Área do Supervisor</h2>
+      <input type="password" id="senhaSupervisor" placeholder="Senha do Supervisor">
+      <button onclick="loginSupervisor()">Entrar</button>
+      <div id="areaSupervisor" class="hidden">
+        <h3>Lançar Pontuação</h3>
+        <select id="estagiarioSelect"></select>
+        <select id="criterioSelect"></select>
+        <button onclick="atribuirPontos()">Atribuir Pontos</button>
+        <br><br>
+        <button onclick="resetarMes()">Iniciar Nova Avaliação (Zerar)</button>
+      </div>
+    </section>
+
+    <!-- Ranking -->
+    <section>
+      <h2>Ranking</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Posição</th>
+            <th>Nome</th>
+            <th>Pontuação</th>
+          </tr>
+        </thead>
+        <tbody id="ranking"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    // Dados no localStorage
+    let estagiarios = JSON.parse(localStorage.getItem("estagiarios")) || [];
+    const criterios = [
+      { nome: "Ajudou outro setor sem prejudicar o seu", pontos: 3 },
+      { nome: "Apresentou ideia de melhoria", pontos: 2 },
+      { nome: "Cumpriu atividades no prazo", pontos: 1 },
+      { nome: "Demonstrou organização", pontos: 1 },
+      { nome: "Ajudou colega de equipe", pontos: 2 },
+      { nome: "Reconhecido por outro setor", pontos: 3 },
+      { nome: "Erro reincidente", pontos: -1 },
+      { nome: "Atraso sem justificativa", pontos: -2 },
+      { nome: "Não cumpriu tarefa atribuída", pontos: -3 },
+    ];
+
+    // Salvar no localStorage
+    function salvar() {
+      localStorage.setItem("estagiarios", JSON.stringify(estagiarios));
+    }
+
+    // Cadastrar Estagiário
+    function cadastrarEstagiario() {
+      const nome = document.getElementById("nomeEstagiario").value.trim();
+      if (nome === "") return alert("Digite um nome válido!");
+      estagiarios.push({ nome, pontos: 0 });
+      salvar();
+      atualizarRanking();
+      atualizarSelects();
+      document.getElementById("nomeEstagiario").value = "";
+    }
+
+    // Login Supervisor
+    function loginSupervisor() {
+      const senha = document.getElementById("senhaSupervisor").value;
+      if (senha === "1234") {
+        document.getElementById("areaSupervisor").classList.remove("hidden");
+        atualizarSelects();
+      } else {
+        alert("Senha incorreta!");
+      }
+    }
+
+    // Atualizar selects
+    function atualizarSelects() {
+      const estagiarioSelect = document.getElementById("estagiarioSelect");
+      const criterioSelect = document.getElementById("criterioSelect");
+      estagiarioSelect.innerHTML = "";
+      criterioSelect.innerHTML = "";
+      estagiarios.forEach((e, i) => {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = e.nome;
+        estagiarioSelect.appendChild(option);
+      });
+      criterios.forEach((c, i) => {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = `${c.nome} (${c.pontos > 0 ? "+" : ""}${c.pontos})`;
+        criterioSelect.appendChild(option);
+      });
+    }
+
+    // Atribuir Pontos
+    function atribuirPontos() {
+      const iEstagiario = document.getElementById("estagiarioSelect").value;
+      const iCriterio = document.getElementById("criterioSelect").value;
+      if (iEstagiario === "" || iCriterio === "") return;
+      estagiarios[iEstagiario].pontos += criterios[iCriterio].pontos;
+      salvar();
+      atualizarRanking();
+    }
+
+    // Resetar avaliação mensal
+    function resetarMes() {
+      if (!confirm("Tem certeza que deseja iniciar uma nova avaliação?")) return;
+      estagiarios.forEach(e => e.pontos = 0);
+      salvar();
+      atualizarRanking();
+    }
+
+    // Atualizar Ranking
+    function atualizarRanking() {
+      const ranking = document.getElementById("ranking");
+      ranking.innerHTML = "";
+      estagiarios.sort((a, b) => b.pontos - a.pontos);
+      estagiarios.forEach((e, i) => {
+        const tr = document.createElement("tr");
+        if (i === 0) tr.classList.add("top1");
+        if (i === 1) tr.classList.add("top2");
+        if (i === 2) tr.classList.add("top3");
+        tr.innerHTML = `<td>${i + 1}º</td><td>${e.nome}</td><td>${e.pontos}</td>`;
+        ranking.appendChild(tr);
+      });
+    }
+
+    // Inicializar
+    atualizarRanking();
+    atualizarSelects();
+  </script>
+</body>
+</html>
